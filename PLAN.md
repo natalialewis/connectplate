@@ -1,177 +1,378 @@
-# Next.js + Supabase Starter App — Implementation Plan
+# ConnectPlate Implementation Plan
 
-This document is the implementation plan for the assignment. Save it as a markdown file in the project root (e.g. **PLAN.md** or **ASSIGNMENT_PLAN.md**).
+## 0) Goal and Scope
 
-**Decisions:** Tailwind CSS (plain CSS only when needed), Jest for unit tests, bash setup script (`setup.sh`), Vercel as primary deployment target, Supabase Storage for avatar uploads. Route/component names are flexible; keep them consistent and documented.
+Build `ConnectPlate` as a diet-focused, community recipe platform using the existing Next.js + Supabase starter as baseline auth/data infrastructure, then incrementally add community features, search, AI conversion, and background processing in production-safe phases.
 
----
+Primary constraints:
 
-## 1. Next.js application (already partially done)
+- Runtime target: OpenNext on Cloudflare Workers (not deprecated Next-on-Pages).
+- Async processing: Cloudflare Queues for long-running tasks (LLM conversion and PDF generation).
+- Search: Meilisearch hosted on Fly.io with persistent volume.
+- Security: Supabase RLS-first data model and private service credentials only on server/worker paths.
 
-- **Status:** Project exists with Next.js 16, TypeScript, Tailwind 4, App Router ([app/](app/)).
-- **Remaining:** Confirm project structure and add folders: `components/` (e.g. `components/ui/` for reusable UI), `lib/` (Supabase clients, hooks, utils). Document structure in README.
-- **Styling:** Use Tailwind primarily; add plain CSS only when necessary (e.g. one-off overrides). No CSS modules.
+## 1) Project Overview (Course Proposal Section)
 
----
+`ConnectPlate` helps home cooks discover and share recipes that satisfy dietary needs (e.g., low sodium, gluten-free) while fostering community interactions (follow users, save recipes, browse feed).
 
-## 2. Supabase integration
+User experiences:
 
-- **Install:** Supabase CLI (dev), `@supabase/supabase-js` and `@supabase/ssr`. Initialize Supabase in repo: `npx supabase init` to create `supabase/` (config, migrations).
-- **Local dev:** Use `npx supabase start` for local Supabase; document Docker requirement in README.
-- **Client utilities (using @supabase/ssr):**
-- **Server:** e.g. `lib/supabase/server.ts` — create Supabase client for server components (cookies).
-- **Client:** e.g. `lib/supabase/client.ts` — create browser client for client components.
-- **Middleware + proxy:** Implement token refresh:
-- Put session refresh / proxy logic in **`proxy.ts`** at the root; Document which paths are safe from redirect to login in README.
-- **Env:** Require `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local`. Document in README; ensure `.env.local` is in `.gitignore` (already covered by [.gitignore](.gitignore) `.env*`).
+- Unauthenticated: marketing-style home page, searchable public recipes with dietary filters, read-only recipe details.
+- Authenticated: personalized feed (followed users), profile and settings management, saved recipes, AI dietary conversion requests, and PDF export requests.
 
----
+## 2) Planned Features and Tasks (Course Proposal Section)
 
-## 3. Profile model (declarative schema and migrations)
+### A. Frontend (Next.js App Router + Tailwind)
 
-- **Declarative schema:** Create `supabase/schemas/profiles.sql` defining a `profiles` table:
-- `id` UUID PRIMARY KEY REFERENCES `auth.users(id)` ON DELETE CASCADE
-- `email` (from auth), `full_name`, `avatar_url`, `updated_at` (or similar)
-- No trigger in the declarative file; triggers go in migrations.
-- **Migration from schema:** Run `npx supabase db diff -f create_profiles` (or similar) to generate a migration from the declarative schema. Commit under `supabase/migrations/`.
-- **updated_at trigger:** Add a migration (or extend the same one) that creates a trigger to set `profiles.updated_at` on row update (e.g. `BEFORE UPDATE ... SET updated_at = now()`).
-- **Automatic profile creation:** Add a migration that:
-- Creates a function that runs AFTER INSERT on `auth.users`, reads `NEW.id` and `NEW.email`, and INSERTs one row into `profiles`.
-- Creates a trigger: `AFTER INSERT ON auth.users FOR EACH ROW EXECUTE ...`
-- Puts both function and trigger in the migration file.
+- Build route groups and pages for:
+  - Public: `/`, `/recipes`, `/recipes/[id]`.
+  - Authenticated: `/feed`, `/dashboard`, `/profile/[username]`, `/settings`, `/saved`.
+- Add reusable components in existing structure:
+  - Recipe cards, dietary filter chips, search input, follow button, save button, conversion modal, PDF status chip.
+- Implement loading/error states per route (`loading.tsx`, `error.tsx`) and optimistic UI for follow/save actions.
+- Accessibility and responsive-first implementation:
+  - Keyboard navigable controls, visible focus states, WCAG contrast checks, ARIA labels for dynamic controls.
 
-All schema changes only via migration files; no manual SQL execution.
+### B. Backend/API (Route Handlers)
 
----
+- Implement route handlers under `app/api/` for:
+  - Recipe CRUD.
+  - Follow/unfollow.
+  - Save/unsave recipes.
+  - Search proxy to Meilisearch.
+  - Queue producers: `convert-recipe` and `generate-pdf`.
+- Add strict input validation and auth guards for each endpoint.
+- Ensure all writes use server-side Supabase client and enforce ownership checks.
 
-## 4. Row Level Security (RLS)
+### C. Database (Supabase + RLS)
 
-- **Enable RLS** on `profiles` in a migration.
-- **Policies** using `auth.uid()`:
-- SELECT: user can read only their own row (`id = auth.uid()`).
-- UPDATE: user can update only their own row.
-- INSERT: user can insert only their own row (id = auth.uid()).
-- Ensure no policy allows reading or modifying other users' profiles.
+- Extend schema with normalized tables for users, recipes, social graph, saved recipes, tags, and job tracking.
+- Add migration-driven constraints, indexes, and RLS policies.
+- Add denormalized read columns only where needed for feed/search performance.
 
----
+### D. Background Processing (Cloudflare Queues + Workers)
 
-## 5. Authentication
+- Queue 1: dietary conversion jobs (OpenAI call + output persistence).
+- Queue 2: PDF generation jobs (render + store in Supabase Storage + signed/public URL handling).
+- Add dead-letter/error handling and retry policy.
+- Store job lifecycle states in DB (`queued`, `processing`, `succeeded`, `failed`).
 
-- **Implement:** Sign up, sign in, sign out (email/password) using Supabase Auth.
-- **Patterns:**
-- **Client:** e.g. `useAuth()` (or `useUser()`) in `lib/hooks/` that exposes user and auth actions; use in client components.
-- **Server:** e.g. `getUser()` or `getSession()` in `lib/supabase/` that server components and Server Actions call to check auth.
-- **Protected routes:** For dashboard and profile, check auth server-side (or in middleware); redirect to login if unauthenticated.
-- **Display user info:** Show user/email (and profile data where relevant) on home, dashboard, and profile when logged in.
-- **Errors:** Handle failed sign up/sign in (e.g. invalid credentials, rate limit) and show clear messages in the UI.
+### E. Search (Meilisearch on Fly.io)
 
----
+- Provision Meilisearch with persistent volume and secured API key.
+- Define recipe index schema, searchable/filterable/sortable attributes.
+- Build incremental sync process (on recipe create/update/delete).
 
-## 6. Example pages
+## 3) Technical Requirements and Technology Choices (Course Proposal Section)
 
-Use a consistent naming scheme (e.g. `/login`, `/signup`, `/dashboard`, `/profile` or `/auth/login`, `/account`, etc.) and document it in README.
+- Web app: Next.js App Router.
+- Hosting/runtime: OpenNext deployed to Cloudflare Workers.
+- Database/Auth/Storage: Supabase Postgres + Auth + Storage + RLS.
+- Background worker requirement: Cloudflare Queues consumers for async LLM/PDF tasks.
+- LLM requirement: OpenAI integration for dietary conversions with guardrails.
+- New technologies (at least two):
+  - OpenNext for Cloudflare deployment path.
+  - Meilisearch (hosted on Fly.io persistent volume).
+  - Cloudflare Queues (additional new infra).
 
-| Route | Purpose |
-|-------|--------|
-| **/** | Home: welcome message, auth status; link to login/signup when logged out, to dashboard when logged in. |
-| **/login** | Email and password login form; error handling; redirect to dashboard on success. |
-| **/signup** | Email and password signup form; error handling; redirect to dashboard on success. |
-| **/dashboard** | Protected. Require auth (redirect to login otherwise). Show profile summary, link to profile page, sign out button. |
-| **/profile** | Protected. Require auth. Show current profile; form to update `full_name` (and any other profile fields); **avatar upload** (select file, upload to Supabase Storage, update `avatar_url`, display avatar, save button); error handling for upload and validation. |
+## 4) New Knowledge and Open Questions (Course Proposal Section)
 
-For avatar upload: create a Supabase Storage bucket (e.g. `avatars`), set RLS so users can read/update only their own object (e.g. by path or user id). Update `profiles.avatar_url` with the public or signed URL.
+Learning topics:
 
----
+- OpenNext build/deploy flow and Cloudflare bindings.
+- Queue architecture on Cloudflare (producer/consumer/retries/DLQ).
+- Meilisearch relevance tuning and index sync design.
+- Prompt and output validation strategies for reliable recipe conversion.
 
-## 7. Setup script (bash)
+Primary risks and mitigations:
 
-- **File:** `setup.sh` in project root; make executable (`chmod +x setup.sh`).
-- **Assumptions:** Supabase already initialized (`supabase/` with migrations and schemas exists). Idempotent and safe to run multiple times.
-- **Steps in order:**
+- LLM output quality risk -> strict schema validation + fallback messaging + human-readable diff of changed steps.
+- API/runtime compatibility risk on edge -> avoid Node-only modules in route handlers/workers.
+- Search cost/operations risk -> constrain indexed fields, monitor usage, and predefine volume limits on Fly.
+- Migration safety risk -> keep migration workflow manual/protected and environment-scoped.
 
-1. `npm install`
-2. Start Supabase: `npx supabase start` (detect if already running and skip or continue).
-3. Extract from `supabase start` output: Supabase URL and anon key (e.g. grep/sed or parse the printed table).
-4. Create or update `.env.local` with `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
-5. Run migrations: `npx supabase db reset` or `npx supabase migration up`.
-6. Print clear summary of what was done and next steps (e.g. "Run `npm run dev`").
+## 5) Sequential Implementation Phases
 
-- **Edge cases:** If `.env.local` exists, overwrite or prompt; if Supabase is already running, avoid duplicate start; on failure, print helpful error messages.
-- **README:** Document how to run the script (e.g. `./setup.sh`) and prerequisites (Node, Docker), plus troubleshooting.
+### Phase 1 — Foundation Hardening and Rebrand
 
----
+Scope:
 
-## 8. Code organization and documentation
+- Finalize branding strings/colors/theme tokens and remove remaining starter wording.
+- Keep migration workflow manual.
+- Confirm local and remote env separation.
 
-- **Decide and document in README:**
-- Reusable components: e.g. `components/` or `components/ui/`.
-- Custom hooks: e.g. `lib/hooks/`.
-- Utility functions: e.g. `lib/utils/`.
-- Supabase helpers: `lib/supabase/`.
-- **README sections to include:** Project description and purpose; prerequisites (Node version, Docker); quick start (setup script); manual setup (step-by-step); project structure; how to use this starter for new projects; environment variables; database schema overview; authentication flow; deployment (Vercel-focused); GitHub Actions; troubleshooting.
+Deliverables:
 
----
+- Brand baseline in UI metadata/header/home messaging.
+- Updated `tailwind` theme tokens and CSS variables for accessible palette.
 
-## 9. Unit testing (Jest)
+Key files:
 
-- **Setup:** Add Jest and React Testing Library (and any Jest env for Next/React if needed). Configure for TypeScript (e.g. ts-jest or project references). Add `test` script in [package.json](package.json).
-- **Examples:** At least a few tests demonstrating:
-- React component tests (e.g. a button or a small form).
-- Utility function tests.
-- Auth-related code (e.g. a helper that returns user or null).
-- **README:** How to run tests (`npm test`) and how to add new tests (where to put them, pattern to follow).
+- `/home/talia/connectplate/app/layout.tsx`
+- `/home/talia/connectplate/components/header/Header.tsx`
+- `/home/talia/connectplate/app/globals.css`
+- `/home/talia/connectplate/tailwind.config.ts`
+- `/home/talia/connectplate/.github/workflows/migrate.yml`
 
----
+### Phase 2 — Data Model and RLS Design
 
-## 10. Deployment (Vercel) and CI/CD
+Scope:
 
-- **Deployment docs (README):**
-- Create/link production Supabase project; get production URL and anon key.
-- In Vercel: new project from repo; set env vars (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`); link production database.
-- Platform notes: Vercel env dashboard, no commit of `.env.local`, optional serverless/Edge notes if relevant.
-- **GitHub Actions workflow:** e.g. `.github/workflows/migrate.yml`:
-- Trigger: push to `main` (or deployment to production).
-- Job: checkout, set up Node (if needed for CLI), run Supabase migrations against production using Supabase CLI and credentials from GitHub Secrets (e.g. `SUPABASE_DB_URL` or project ref + access token as per Supabase docs).
-- On failure: clear error message; do not expose secrets.
-- **README:** How to set up and configure the workflow (which secrets to add, where to find them in Supabase dashboard).
+- Define full relational model and policies before building features.
 
----
+Tables (minimum):
 
-## 11. Submission checklist
+- `profiles` (extend existing): `id`, `username`, `display_name`, `bio`, `avatar_url`.
+- `recipes`: `id`, `author_id`, `title`, `ingredients_json`, `instructions_json`, `nutrition_json`, `visibility`, timestamps.
+- `dietary_tags`: canonical tags (`gluten_free`, `low_sodium`, etc.) and metadata.
+- `recipe_tags`: many-to-many join.
+- `follows`: `follower_id`, `followee_id`.
+- `saved_recipes`: `user_id`, `recipe_id`.
+- `recipe_conversion_jobs`: status/result/error metadata.
+- `recipe_pdf_jobs`: status/storage path/error metadata.
 
-- Remove `node_modules`; keep `supabase/` (migrations and schemas).
-- Ensure `setup.sh` is included and executable.
-- Verify README is comprehensive and clear.
-- Zip project folder and submit.
+RLS goals:
 
----
+- Public read for `public` recipes.
+- Owner-only recipe edit/delete.
+- Auth-only follow/save with self-protection constraints.
+- Job rows visible to requesting user and service roles/worker integrations only.
 
-## Suggested implementation order
+Deliverables:
 
-1. Supabase init, client utilities, env, middleware + proxy.
-2. Declarative schema and migrations (profiles table, updated_at trigger, auto profile trigger).
-3. RLS on profiles.
-4. Auth: sign up, sign in, sign out; server/client helpers and protected route checks.
-5. Pages: home, login, signup, dashboard, profile (with avatar upload and Storage).
-6. Setup script (`setup.sh`).
-7. Jest setup and example tests.
-8. README (all sections) and deployment + GitHub Actions docs.
-9. Final test: remove `node_modules` and `.env.local`, run `./setup.sh`, then run app and verify flows.
+- Declarative schema updates + generated migrations + indexes + policies.
 
----
+Key files:
 
-## File and folder reference (summary)
+- `/home/talia/connectplate/supabase/schemas/*.sql`
+- `/home/talia/connectplate/supabase/migrations/*`
 
-| Item | Location / note |
-|------|------------------|
-| Supabase config & migrations | `supabase/` (init then add migrations) |
-| Declarative schema | `supabase/schemas/profiles.sql` |
-| Server client | e.g. `lib/supabase/server.ts` |
-| Browser client | e.g. `lib/supabase/client.ts` |
-| Token refresh logic | `proxy.ts` (then used in middleware) |
-| Middleware | `middleware.ts` (root) |
-| Auth hook | e.g. `lib/hooks/useAuth.ts` |
-| Reusable UI | e.g. `components/` or `components/ui/` |
-| Setup script | `setup.sh` (root) |
-| GitHub Actions | `.github/workflows/migrate.yml` |
-| Plan document | Save this content as `PLAN.md` (or `ASSIGNMENT_PLAN.md`) in project root |
+### Phase 3 — Public Recipe Discovery MVP
+
+Scope:
+
+- Build public browse/search/filter pages and recipe detail page.
+
+Tasks:
+
+- Create `/recipes` with keyword + dietary filters.
+- Create `/recipes/[id]` detail view with ingredient/instruction rendering.
+- Implement server-side data fetchers and pagination.
+
+Deliverables:
+
+- Non-authenticated user can discover and read public recipes.
+
+Key files:
+
+- `/home/talia/connectplate/app/recipes/page.tsx`
+- `/home/talia/connectplate/app/recipes/[id]/page.tsx`
+- `/home/talia/connectplate/components/*recipe*`
+- `/home/talia/connectplate/lib/*`
+
+### Phase 4 — Authenticated Community Features
+
+Scope:
+
+- Add follow graph, feed, save flows, and profile settings.
+
+Tasks:
+
+- Follow/unfollow action endpoints + UI.
+- Saved recipes endpoint + dashboard section.
+- Feed query joining followed users’ public recipes.
+- Profile page improvements (`username`, `bio`, avatar, counts).
+
+Deliverables:
+
+- Signed-in users can personalize content and interactions.
+
+Key files:
+
+- `/home/talia/connectplate/app/feed/page.tsx`
+- `/home/talia/connectplate/app/dashboard/page.tsx`
+- `/home/talia/connectplate/app/profile/*`
+- `/home/talia/connectplate/app/api/*`
+
+### Phase 5 — Search Infrastructure (Meilisearch)
+
+Scope:
+
+- Integrate recipe indexing and query path.
+
+Tasks:
+
+- Provision Fly app + persistent volume + secrets.
+- Define index settings:
+  - Searchable: title, ingredients text, instructions text.
+  - Filterable: dietary tags, author id, visibility.
+  - Sortable: created_at, popularity score (later).
+- Build sync hooks from recipe mutations to Meilisearch.
+
+Deliverables:
+
+- Fast typo-tolerant full-text search with dietary filters.
+
+Key files:
+
+- `/home/talia/connectplate/app/api/search/route.ts`
+- `/home/talia/connectplate/lib/search/*`
+
+### Phase 6 — Queue-Based AI Dietary Conversion (OpenAI MVP)
+
+Scope:
+
+- Build async conversion pipeline with persistent result tracking.
+
+Flow:
+
+1. UI submits conversion request (recipe id + target diet).
+2. API validates ownership/access and enqueues job.
+3. Queue consumer fetches recipe, calls OpenAI, validates response schema, stores converted recipe variant.
+4. UI polls/subscribes to job status and displays result/diff.
+
+Guardrails:
+
+- Structured output schema (JSON only).
+- Reject unsafe/invalid conversions.
+- Never store hidden reasoning; persist only final transformed content and rationale summary.
+
+Deliverables:
+
+- Reliable conversion pipeline that avoids edge timeouts.
+
+Key files:
+
+- `/home/talia/connectplate/app/api/recipes/[id]/convert/route.ts`
+- `/home/talia/connectplate/lib/llm/*`
+- `/home/talia/connectplate/workers/*`
+
+### Phase 7 — Queue-Based PDF Generation
+
+Scope:
+
+- Generate downloadable recipe PDFs asynchronously.
+
+Flow:
+
+1. User requests PDF from recipe page.
+2. API enqueues PDF job.
+3. Worker renders PDF, uploads to Supabase Storage, updates job row.
+4. UI shows completion and download link.
+
+Deliverables:
+
+- Scalable PDF generation without blocking request lifecycle.
+
+Key files:
+
+- `/home/talia/connectplate/app/api/recipes/[id]/pdf/route.ts`
+- `/home/talia/connectplate/lib/pdf/*`
+- `/home/talia/connectplate/workers/*`
+
+### Phase 8 — Cloudflare Deployment with OpenNext
+
+Scope:
+
+- Configure production deployment and bindings.
+
+Tasks:
+
+- Add OpenNext build/deploy config.
+- Configure Cloudflare env vars/bindings (queues, secrets).
+- Verify route handlers and middleware behavior on worker runtime.
+
+Deliverables:
+
+- Repeatable deploy pipeline to Cloudflare Workers via OpenNext.
+
+Key files:
+
+- `/home/talia/connectplate/open-next.config.ts` (or equivalent)
+- `/home/talia/connectplate/wrangler.toml`
+- `/home/talia/connectplate/package.json`
+
+### Phase 9 — Design System and Accessibility Pass
+
+Scope:
+
+- Convert provided palette to semantic design tokens and enforce accessibility.
+
+Initial palette candidates:
+
+- lilac `#c387d5`
+- plum `#734382`
+- lavender `#e4cdeb`
+- charcoal `#2E2E2E`
+- gray `#e2e0e0`
+- white `#ffffff`
+
+Tasks:
+
+- Map to semantic tokens (`primary`, `secondary`, `surface`, `muted`, `focus`, `danger`).
+- Validate contrast for text/button/focus states in light/dark themes.
+- Tailwind utilities for consistent spacing, elevation, and states.
+
+Deliverables:
+
+- Accessible, cohesive UI foundation used across all feature pages.
+
+Key files:
+
+- `/home/talia/connectplate/app/globals.css`
+- `/home/talia/connectplate/tailwind.config.ts`
+- `/home/talia/connectplate/components/ui/*`
+
+### Phase 10 — Observability, Testing, and Launch Readiness
+
+Scope:
+
+- Add tests and operational readiness checks.
+
+Tasks:
+
+- Unit tests for auth guards, API validators, queue payload shaping.
+- Integration tests for recipe CRUD, follow/save, and job status transitions.
+- Error monitoring/logging strategy for workers and route handlers.
+- Seed script and demo data for grading/demo.
+
+Deliverables:
+
+- Stable MVP with documented test plan and known limitations.
+
+Key files:
+
+- `/home/talia/connectplate/lib/**/*.test.ts*`
+- `/home/talia/connectplate/app/api/**/*.test.ts*`
+- `/home/talia/connectplate/STARTER-CODE-README.md` (reference only until new README is authored)
+
+## 6) Architecture Diagram (High Level)
+
+```mermaid
+flowchart TD
+  userClient[UserBrowser] --> nextApp[NextAppRouterOnCloudflareWorkers]
+  nextApp --> supabaseDb[SupabasePostgresRLS]
+  nextApp --> supabaseAuth[SupabaseAuth]
+  nextApp --> supabaseStorage[SupabaseStorage]
+  nextApp --> meiliApi[MeilisearchOnFly]
+  nextApp --> queueProducer[CloudflareQueueProducer]
+  queueProducer --> queueJobs[CloudflareQueues]
+  queueJobs --> workerConsumers[WorkerConsumers]
+  workerConsumers --> openaiApi[OpenAIApi]
+  workerConsumers --> supabaseStorage
+  workerConsumers --> supabaseDb
+```
+
+## 7) Milestones and Exit Criteria
+
+- Milestone A: Public recipe browse/search works with seeded data.
+- Milestone B: Authenticated social features (follow/save/feed/profile) complete with RLS.
+- Milestone C: AI conversion queue is reliable and returns validated transformed recipes.
+- Milestone D: PDF queue produces downloadable files in storage.
+- Milestone E: OpenNext deployment live on Cloudflare with monitoring and test coverage baseline.
+
+Exit criteria for “course-ready MVP”:
+
+- Meets all assignment technical requirements (database, background worker, LLM, new technologies, web app).
+- Demonstrates complete unauthenticated and authenticated flows.
+- Includes deployment path, test evidence, and documented known risks/tradeoffs.
