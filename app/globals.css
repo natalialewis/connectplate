@@ -10,87 +10,85 @@
 @import "tailwindcss";
 @config "../tailwind.config.ts";
 
-/* Light theme */
+/* Light theme (ConnectPlate palette) */
 :root {
-  --background: #faf8fc;
-  --foreground: #2d2d30;
-  --card: #ffffff;
-  --card-foreground: #2d2d30;
-  --muted: #f3eff8;
-  --muted-foreground: #52525b;
-  --border: #d4d0dc;
-  --ring: #9b59b6;
+  /* Base surfaces */
+  --background: #f8f4fb;
+  --foreground: #232225;
+  --card: #fffdf9;
+  --card-foreground: #232225;
+  --muted: #efe4f4;
+  --muted-foreground: #4a4850;
+  --border: #d8ccdf;
+  --ring: #734382;
 
-  /* Medium charcoal – secondary text, borders, neutral accents */
-  --charcoal: #52525b;
-  --charcoal-muted: #71717a;
+  /* Neutral baseline from requested charcoal/gray */
+  --charcoal: #2e2e2e;
+  --charcoal-muted: #58565f;
 
-  /* Primary (≥4.5:1 on white for text, white on this for buttons) */
-  --primary: #9b59b6;
+  /* Brand baseline from requested lilac/plum/lavender */
+  --primary: #734382;
   --primary-foreground: #ffffff;
-  --primary-hover: #8e44ad;
-  --primary-muted: #f0e6f5;
-  --primary-muted-foreground: #6b2d85;
+  --primary-hover: #5e356b;
+  --primary-muted: #e4cdeb;
+  --primary-muted-foreground: #4e2d59;
 
-  /* Accent */
-  --accent: #a066b8;
-  --accent-foreground: #ffffff;
-  --accent-muted: #f0e6f5;
+  --accent: #c387d5;
+  --accent-foreground: #2e2e2e;
+  --accent-muted: #f1e4f5;
 
-  /* Semantic */
-  --destructive: #c4077b;
+  --destructive: #b4234f;
   --destructive-foreground: #ffffff;
 }
 
-/* Dark theme */
+/* Dark theme (contrast-safe complement) */
 .dark {
-  --background: #100f14;
-  --foreground: #e4e2e9;
-  --card: #18161d;
-  --card-foreground: #e4e2e9;
-  --muted: #25222c;
-  --muted-foreground: #a1a1aa;
-  --border: #3f3d48;
-  --ring: #af7ac5;
+  --background: #17131c;
+  --foreground: #f3eef7;
+  --card: #221b2a;
+  --card-foreground: #f3eef7;
+  --muted: #2e2638;
+  --muted-foreground: #c7c1cf;
+  --border: #43374f;
+  --ring: #d3a5e1;
 
-  /* Charcoal – borders and secondary */
-  --charcoal: #686868;
-  --charcoal-muted: #797979;
-  --primary: #c39bd4;
-  --primary-foreground: #100f14;
-  --primary-hover: #d4b8e0;
-  --primary-muted: #2d2238;
-  --primary-muted-foreground: #d4b8e0;
+  --charcoal: #d9d6de;
+  --charcoal-muted: #ada8b7;
 
-  /* Accent */
-  --accent: #af7ac5;
-  --accent-foreground: #100f14;
-  --accent-muted: #2d2238;
-  --destructive: #c4077b;
+  --primary: #d8b4e3;
+  --primary-foreground: #1b1520;
+  --primary-hover: #e3c7eb;
+  --primary-muted: #3a2c47;
+  --primary-muted-foreground: #f0dff5;
+
+  --accent: #c387d5;
+  --accent-foreground: #1b1520;
+  --accent-muted: #3e2f4a;
+  --destructive: #df5f85;
   --destructive-foreground: #ffffff;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
-    --background: #100f14;
-    --foreground: #e4e2e9;
-    --card: #18161d;
-    --card-foreground: #e4e2e9;
-    --muted: #25222c;
-    --muted-foreground: #a1a1aa;
-    --border: #3f3d48;
-    --ring: #af7ac5;
-    --charcoal: #a1a1aa;
-    --charcoal-muted: #71717a;
-    --primary: #c39bd4;
-    --primary-foreground: #100f14;
-    --primary-hover: #d4b8e0;
-    --primary-muted: #2d2238;
-    --primary-muted-foreground: #d4b8e0;
-    --accent: #af7ac5;
-    --accent-foreground: #100f14;
-    --accent-muted: #2d2238;
-    --destructive: #c4077b;
+    --background: #17131c;
+    --foreground: #f3eef7;
+    --card: #221b2a;
+    --card-foreground: #f3eef7;
+    --muted: #2e2638;
+    --muted-foreground: #c7c1cf;
+    --border: #43374f;
+    --ring: #d3a5e1;
+    --charcoal: #d9d6de;
+    --charcoal-muted: #ada8b7;
+    --primary: #d8b4e3;
+    --primary-foreground: #1b1520;
+    --primary-hover: #e3c7eb;
+    --primary-muted: #3a2c47;
+    --primary-muted-foreground: #f0dff5;
+    --accent: #c387d5;
+    --accent-foreground: #1b1520;
+    --accent-muted: #3e2f4a;
+    --destructive: #df5f85;
     --destructive-foreground: #ffffff;
   }
 }
