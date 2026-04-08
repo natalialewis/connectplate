@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Next.js and Supabase Starter App",
-  description: "A starter app for building web applications with Next.js and Supabase",
+  title: "ConnectPlate",
+  description: "ConnectPlate web application",
 };
 
 export default function RootLayout({

@@ -1,4 +1,4 @@
-# Next.js + Supabase Starter App
+# Next.js + Supabase Starter App (Made by me, Natalia Lewis)
 
 A reusable starter application that integrates **Next.js** with **Supabase**, providing authentication, user profiles, avatar storage, and database security out of the box. Use it as a foundation for new projects to save time and keep patterns consistent.
 

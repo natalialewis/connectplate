@@ -26,7 +26,7 @@ describe("Header", () => {
 
   it("renders logo link to home", () => {
     render(<Header />);
-    const homeLink = screen.getByRole("link", { name: /starter app/i });
+    const homeLink = screen.getByRole("link", { name: /connectplate/i });
     expect(homeLink).toHaveAttribute("href", "/");
   });
 

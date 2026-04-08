@@ -10,9 +10,7 @@ export default async function HomePage() {
         <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
           Welcome{user ? `, ${user.user_metadata?.first_name} ${user.user_metadata?.last_name}` : ""}!
         </h1>
-        <p className="mt-4 text-base text-muted-foreground sm:mt-6 sm:text-lg">
-          This is your Next.js and Supabase starter app.
-        </p>
+        <p className="mt-4 text-base text-muted-foreground sm:mt-6 sm:text-lg">Welcome to ConnectPlate.</p>
         <p className="mt-2 text-base text-muted-foreground sm:mt-3 sm:text-lg">
           <span className="font-medium">Authentication status:</span> {user ? "Logged In" : "Not Logged In"}
         </p>
