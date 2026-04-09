@@ -22,14 +22,12 @@ describe("AuthPage", () => {
     expect(screen.getByText("Form content")).toBeInTheDocument();
   });
 
-  it("renders back to home link", () => {
+  it("does not render a back link", () => {
     render(
       <AuthPage title="Login" description="Desc">
         <div />
       </AuthPage>
     );
-    const link = screen.getByRole("link", { name: /back to home/i });
-    expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute("href", "/");
+    expect(screen.queryByRole("link", { name: /back to home/i })).not.toBeInTheDocument();
   });
 });
