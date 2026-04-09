@@ -29,7 +29,7 @@ export function PasswordInput({
         type={showPassword ? "text" : "password"}
         value={value}
         onChange={onChange}
-        className={`block w-full min-w-0 rounded-lg border border-border bg-background pr-10 py-2.5 text-base text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring md:py-3 ${className}`}
+        className={`block w-full min-w-0 rounded-lg border border-charcoal/70 bg-background pr-10 py-2.5 text-base text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background md:py-3 ${className}`}
         aria-invalid={ariaInvalid}
         {...rest}
       />
