@@ -28,7 +28,7 @@ describe("useLogin", () => {
     expect(result.current.error).toBeNull();
   });
 
-  it("redirects to dashboard on successful login", async () => {
+  it("redirects to home on successful login", async () => {
     mockSignInWithPassword.mockResolvedValue({ error: null });
 
     const { result } = renderHook(() => useLogin());
@@ -37,7 +37,7 @@ describe("useLogin", () => {
       await result.current.login({ email: "a@b.com", password: "secret" });
     });
 
-    expect(mockPush).toHaveBeenCalledWith("/dashboard");
+    expect(mockPush).toHaveBeenCalledWith("/");
     expect(result.current.error).toBeNull();
   });
 

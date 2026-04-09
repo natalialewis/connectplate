@@ -27,7 +27,7 @@ describe("useSignUp", () => {
     expect(result.current.error).toBeNull();
   });
 
-  it("calls signUp with email, password, and user metadata", async () => {
+  it("calls signUp with email and password", async () => {
     mockSignUp.mockResolvedValue({ error: null });
 
     const { result } = renderHook(() => useSignUp());
@@ -36,19 +36,14 @@ describe("useSignUp", () => {
       await result.current.signUp({
         email: "new@b.com",
         password: "secret",
-        firstName: "Jane",
-        lastName: "Doe",
       });
     });
 
     expect(mockSignUp).toHaveBeenCalledWith({
       email: "new@b.com",
       password: "secret",
-      options: {
-        data: { first_name: "Jane", last_name: "Doe" },
-      },
     });
-    expect(mockPush).toHaveBeenCalledWith("/dashboard");
+    expect(mockPush).toHaveBeenCalledWith("/");
   });
 
   it("sets error on failed signup", async () => {
@@ -60,8 +55,6 @@ describe("useSignUp", () => {
       await result.current.signUp({
         email: "exists@b.com",
         password: "secret",
-        firstName: "J",
-        lastName: "D",
       });
     });
 

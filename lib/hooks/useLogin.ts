@@ -27,8 +27,8 @@ export function useLogin() {
         password,
       });
       if (signInError) throw signInError;
-      // When the user logs in successfully, they are redirected to the dashboard
-      router.push("/dashboard");
+      // When the user logs in successfully, they are redirected to home.
+      router.push("/");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {

@@ -7,8 +7,6 @@ import { createSupabaseClient } from "@/lib/supabase/client";
 export type SignUpParams = {
   email: string;
   password: string;
-  firstName: string;
-  lastName: string;
 };
 
 export function useSignUp() {
@@ -17,7 +15,7 @@ export function useSignUp() {
   const [error, setError] = useState<string | null>(null);
 
   async function signUp(params: SignUpParams) {
-    const { email, password, firstName, lastName } = params;
+    const { email, password } = params;
 
     setIsLoading(true);
     setError(null);
@@ -27,16 +25,10 @@ export function useSignUp() {
       const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: {
-            first_name: firstName,
-            last_name: lastName,
-          },
-        },
       });
       if (signUpError) throw signUpError;
-      // When the user signs up successfully, they are redirected to the dashboard
-      router.push("/dashboard");
+      // When the user signs up successfully, they are redirected to the home feed shell.
+      router.push("/");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
