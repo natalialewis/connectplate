@@ -28,7 +28,7 @@ export function Header() {
             width={40}
             height={40}
             priority
-            className="h-10 w-10 shrink-0 rounded-full"
+            className="h-7 w-7 shrink-0 rounded-full"
           />
           <span className="text-xl font-bold tracking-tight sm:text-2xl">ConnectPlate</span>
         </Link>
