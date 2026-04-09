@@ -5,7 +5,7 @@ export default function LoginPage() {
   return (
     <AuthPage
       title="Log in"
-      description="Log in with your email and password."
+      description=""
     >
       <LoginForm />
     </AuthPage>

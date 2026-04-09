@@ -5,7 +5,7 @@ export default function SignupPage() {
   return (
     <AuthPage
       title="Sign up"
-      description="Create an account with your email and password."
+      description=""
     >
       <SignupForm />
     </AuthPage>
