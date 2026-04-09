@@ -7,6 +7,7 @@
    - body: base styles (background, color, font).
    ============================================================================= */
 
+@import url("https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap");
 @import "tailwindcss";
 @config "../tailwind.config.ts";
 
@@ -21,6 +22,7 @@
   --muted-foreground: #4a4850;
   --border: #d8ccdf;
   --ring: #734382;
+  --auth-background: rgba(197, 136, 214, 0.4);
 
   /* Neutral baseline from requested charcoal/gray */
   --charcoal: #2e2e2e;
@@ -51,6 +53,7 @@
   --muted-foreground: #c7c1cf;
   --border: #43374f;
   --ring: #d3a5e1;
+  --auth-background: rgba(197, 136, 214, 0.22);
 
   --charcoal: #d9d6de;
   --charcoal-muted: #ada8b7;
@@ -78,6 +81,7 @@
     --muted-foreground: #c7c1cf;
     --border: #43374f;
     --ring: #d3a5e1;
+    --auth-background: rgba(197, 136, 214, 0.22);
     --charcoal: #d9d6de;
     --charcoal-muted: #ada8b7;
     --primary: #d8b4e3;
@@ -111,6 +115,7 @@ html.dark {
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
   --color-ring: var(--ring);
+  --color-auth-background: var(--auth-background);
   --color-charcoal: var(--charcoal);
   --color-charcoal-muted: var(--charcoal-muted);
   --color-primary: var(--primary);
@@ -123,7 +128,7 @@ html.dark {
   --color-accent-muted: var(--accent-muted);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Quicksand", var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
@@ -131,7 +136,7 @@ html.dark {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-family: "Quicksand", var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   font-feature-settings: "rlig" 1, "calt" 1;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
