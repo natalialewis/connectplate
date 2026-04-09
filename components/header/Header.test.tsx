@@ -1,6 +1,12 @@
 import { render, screen } from "@testing-library/react";
 import { Header } from "./Header";
 
+const mockUsePathname = jest.fn();
+
+jest.mock("next/navigation", () => ({
+  usePathname: () => mockUsePathname(),
+}));
+
 jest.mock("./AuthNav", () => ({
   AuthNav: () => <div data-testid="auth-nav">AuthNav</div>,
 }));
@@ -19,6 +25,10 @@ jest.mock("next/image", () => ({
 }));
 
 describe("Header", () => {
+  beforeEach(() => {
+    mockUsePathname.mockReturnValue("/");
+  });
+
   it("renders as banner", () => {
     render(<Header />);
     expect(screen.getByRole("banner")).toBeInTheDocument();
@@ -34,5 +44,13 @@ describe("Header", () => {
     render(<Header />);
     expect(screen.getByTestId("auth-nav")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /theme/i })).toBeInTheDocument();
+  });
+
+  it("renders centered auth header on login page", () => {
+    mockUsePathname.mockReturnValue("/login");
+    render(<Header />);
+    expect(screen.getByRole("link", { name: /connectplate/i })).toBeInTheDocument();
+    expect(screen.queryByTestId("auth-nav")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /theme/i })).not.toBeInTheDocument();
   });
 });
