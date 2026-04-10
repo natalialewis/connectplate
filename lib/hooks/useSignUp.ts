@@ -7,6 +7,9 @@ import { createSupabaseClient } from "@/lib/supabase/client";
 export type SignUpParams = {
   email: string;
   password: string;
+  firstName: string;
+  lastName: string;
+  username: string;
 };
 
 export function useSignUp() {
@@ -15,7 +18,7 @@ export function useSignUp() {
   const [error, setError] = useState<string | null>(null);
 
   async function signUp(params: SignUpParams) {
-    const { email, password } = params;
+    const { email, password, firstName, lastName, username } = params;
 
     setIsLoading(true);
     setError(null);
@@ -25,16 +28,37 @@ export function useSignUp() {
       const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+            username: username.trim(),
+          },
+        },
       });
       if (signUpError) throw signUpError;
       // When the user signs up successfully, they are redirected to the home feed shell.
       router.push("/");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      const rawMessage = err instanceof Error ? err.message : "An error occurred";
+      const normalized = rawMessage.toLowerCase();
+      if (
+        normalized.includes("profiles_username_key") ||
+        normalized.includes("duplicate key value") ||
+        normalized.includes("database error saving new user")
+      ) {
+        setError("Username already in use.");
+      } else {
+        setError(rawMessage);
+      }
     } finally {
       setIsLoading(false);
     }
   }
 
-  return { signUp, isLoading, error };
+  function clearError() {
+    setError(null);
+  }
+
+  return { signUp, isLoading, error, clearError };
 }
