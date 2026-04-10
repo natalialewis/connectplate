@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getUser } from "./auth";
+import { getUser, requireUser } from "./auth";
 
 jest.mock("@/lib/supabase/server", () => ({
   createSupabaseClient: jest.fn(),
@@ -16,16 +16,17 @@ describe("getUser", () => {
     jest.clearAllMocks();
   });
 
-  it("redirects to /login when user is not authenticated", async () => {
+  it("returns null when user is not authenticated", async () => {
     mockCreateSupabaseClient.mockResolvedValue({
       auth: {
         getUser: () => Promise.resolve({ data: { user: null } }),
       },
     });
 
-    await getUser();
+    const result = await getUser();
 
-    expect(redirect).toHaveBeenCalledWith("/login");
+    expect(redirect).not.toHaveBeenCalled();
+    expect(result).toBeNull();
   });
 
   it("returns the user when authenticated", async () => {
@@ -40,6 +41,43 @@ describe("getUser", () => {
     });
 
     const result = await getUser();
+
+    expect(redirect).not.toHaveBeenCalled();
+    expect(result).toEqual(mockUser);
+  });
+});
+
+describe("requireUser", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("redirects to /login when user is not authenticated", async () => {
+    (redirect as jest.Mock).mockImplementation(() => {
+      throw new Error("NEXT_REDIRECT");
+    });
+    mockCreateSupabaseClient.mockResolvedValue({
+      auth: {
+        getUser: () => Promise.resolve({ data: { user: null } }),
+      },
+    });
+
+    await expect(requireUser()).rejects.toThrow("NEXT_REDIRECT");
+    expect(redirect).toHaveBeenCalledWith("/login");
+  });
+
+  it("returns the user when authenticated", async () => {
+    const mockUser = {
+      id: "user-123",
+      email: "test@example.com",
+    };
+    mockCreateSupabaseClient.mockResolvedValue({
+      auth: {
+        getUser: () => Promise.resolve({ data: { user: mockUser } }),
+      },
+    });
+
+    const result = await requireUser();
 
     expect(redirect).not.toHaveBeenCalled();
     expect(result).toEqual(mockUser);
