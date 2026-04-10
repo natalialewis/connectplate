@@ -16,7 +16,7 @@ export function Header() {
       role="banner"
     >
       <div
-        className={`mx-auto flex h-12 max-w-6xl items-center px-4 sm:px-6 ${isAuthPage ? "justify-center" : "justify-between"}`}
+        className={`mx-auto flex h-12 max-w-[90rem] items-center px-4 sm:px-6 ${isAuthPage ? "justify-center" : "justify-between"}`}
       >
         <Link
           href="/"
