@@ -24,6 +24,12 @@ enabled = false
 # cert_path = "../certs/my-cert.pem"
 # key_path = "../certs/my-key.pem"
 
+[auth.external.google]
+enabled = true
+client_id = "35688102662-dpg6sk9lkhvqhjkoib768603cmfp6jpt.apps.googleusercontent.com"
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET)"
+skip_nonce_check = false
+
 [db]
 # Port to use for the local database URL.
 port = 54322
