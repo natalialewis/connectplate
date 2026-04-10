@@ -24,11 +24,12 @@ export async function proxy(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     const pathname = request.nextUrl.pathname;
 
-    // Public routes are '/', '/login', and '/signup'
-    const isPublicRoute = 
+    // Public routes: marketing/auth entry, and OAuth PKCE callback (see Supabase Google/OAuth docs).
+    const isPublicRoute =
         pathname === "/" ||
         pathname === "/login" ||
-        pathname === "/signup";
+        pathname === "/signup" ||
+        pathname === "/auth/callback";
 
     // If the user is not on a public route and not authenticated, redirect to '/login'
     if (!isPublicRoute && !user) {

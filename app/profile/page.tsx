@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { type SubmitEvent, useEffect, useState } from "react";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -10,7 +9,6 @@ import { useProfile } from "@/lib/hooks/useProfile";
 import { ProfileAvatar } from "./components/ProfileAvatar";
 
 export default function ProfilePage() {
-  const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading, refetch } = useProfile();
 
@@ -34,13 +32,6 @@ export default function ProfilePage() {
     return () => window.clearTimeout(id);
   }, [isLoading]);
 
-  // If the user is not authenticated, redirect to the login page
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.replace("/login");
-    }
-  }, [authLoading, user, router]);
-
   // If the profile is loaded, set the first and last name
   useEffect(() => {
     if (profile) {
@@ -48,11 +39,6 @@ export default function ProfilePage() {
       setLastName(profile.last_name);
     }
   }, [profile]);
-
-  // Redirect when we know the user is not authenticated
-  if (!authLoading && !user) {
-    return null;
-  }
 
   const showForm = !isLoading && user && profile;
 
