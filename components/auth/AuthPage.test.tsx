@@ -22,6 +22,16 @@ describe("AuthPage", () => {
     expect(screen.getByText("Form content")).toBeInTheDocument();
   });
 
+  it("omits the heading when title is not passed", () => {
+    render(
+      <AuthPage>
+        <div>Content only</div>
+      </AuthPage>
+    );
+    expect(screen.queryByRole("heading")).not.toBeInTheDocument();
+    expect(screen.getByText("Content only")).toBeInTheDocument();
+  });
+
   it("does not render a back link", () => {
     render(
       <AuthPage title="Login" description="Desc">
