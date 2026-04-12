@@ -29,11 +29,32 @@ export async function proxy(request: NextRequest) {
         pathname === "/" ||
         pathname === "/login" ||
         pathname === "/signup" ||
-        pathname === "/auth/callback";
+        pathname === "/auth/callback" ||
+        pathname === "/auth/auth-code-error";
 
     // If the user is not on a public route and not authenticated, redirect to '/login'
     if (!isPublicRoute && !user) {
         return NextResponse.redirect(new URL("/login", request.url));
+    }
+
+    // OAuth sign-up: session exists but profile is not finished until username + names are saved.
+    if (user) {
+        const { data: profile } = await supabase
+            .from("profiles")
+            .select("signup_completed")
+            .eq("id", user.id)
+            .maybeSingle();
+        if (profile && profile.signup_completed === false) {
+            const allowedForIncompleteSignup = [
+                "/signup",
+                "/login",
+                "/auth/callback",
+                "/auth/auth-code-error",
+            ];
+            if (!allowedForIncompleteSignup.includes(pathname)) {
+                return NextResponse.redirect(new URL("/signup?finish=1", request.url));
+            }
+        }
     }
 
     return supabaseResponse;
