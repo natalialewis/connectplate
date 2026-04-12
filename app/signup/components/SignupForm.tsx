@@ -1,9 +1,13 @@
 "use client";
 
+import type { User } from "@supabase/supabase-js";
 import Link from "next/link";
-import { type SubmitEvent, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { type SubmitEvent, useEffect, useRef, useState } from "react";
 import { PasswordInput } from "@/components/ui/PasswordInput";
+import { useGoogleOAuth } from "@/lib/hooks/useGoogleOAuth";
 import { useSignUp } from "@/lib/hooks/useSignUp";
+import { createSupabaseClient } from "@/lib/supabase/client";
 import { validateUsername } from "@/lib/validation/username";
 
 function validatePassword(value: string): boolean {
@@ -22,15 +26,102 @@ function isValidEmail(value: string): boolean {
   return /^\S+@\S+\.\S+$/.test(value);
 }
 
+function trimStr(value: string | null | undefined): string {
+  return (value ?? "").trim();
+}
+
+function metaString(meta: User["user_metadata"], key: string): string {
+  const v = meta?.[key];
+  return typeof v === "string" ? trimStr(v) : "";
+}
+
+/** Names from email signup metadata, Google OIDC (given/family), or full-name fallbacks. */
+function extractSignupNames(
+  user: User,
+  profile?: { first_name: string | null; last_name: string | null } | null,
+): { firstName: string; lastName: string } {
+  let firstName = trimStr(profile?.first_name);
+  let lastName = trimStr(profile?.last_name);
+  const meta = user.user_metadata;
+
+  if (!firstName) {
+    firstName = metaString(meta, "first_name") || metaString(meta, "given_name");
+  }
+  if (!lastName) {
+    lastName = metaString(meta, "last_name") || metaString(meta, "family_name");
+  }
+
+  if (!firstName || !lastName) {
+    const full = metaString(meta, "full_name") || metaString(meta, "name");
+    if (full) {
+      const parts = full.split(/\s+/).filter(Boolean);
+      if (!firstName && parts.length > 0) {
+        firstName = parts[0] ?? "";
+      }
+      if (!lastName && parts.length > 1) {
+        lastName = parts.slice(1).join(" ");
+      }
+    }
+  }
+
+  return { firstName, lastName };
+}
+
 export function SignupForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const finishOAuth = searchParams.get("finish") === "1";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState("");
-  const [finishAccount, setFinishAccount] = useState(false);
+  const [finishAccount, setFinishAccount] = useState(finishOAuth);
+  const [oauthBootstrapLoading, setOauthBootstrapLoading] = useState(finishOAuth);
   const [validationError, setValidationError] = useState("");
-  const { signUp, isLoading, error: signUpError, clearError } = useSignUp();
+  const { signUp, completePendingSignup, isLoading, error: signUpError, clearError } = useSignUp();
+  const {
+    signInWithGoogle,
+    isLoading: googleLoading,
+    error: googleOAuthError,
+  } = useGoogleOAuth();
+
+  const prevFinishOAuthRef = useRef(finishOAuth);
+  useEffect(() => {
+    if (prevFinishOAuthRef.current && !finishOAuth) {
+      setFinishAccount(false);
+    }
+    prevFinishOAuthRef.current = finishOAuth;
+  }, [finishOAuth]);
+
+  useEffect(() => {
+    if (!finishOAuth) {
+      setOauthBootstrapLoading(false);
+      return;
+    }
+    setOauthBootstrapLoading(true);
+    const supabase = createSupabaseClient();
+    void (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        router.replace("/signup");
+        setOauthBootstrapLoading(false);
+        return;
+      }
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("first_name, last_name")
+        .eq("id", user.id)
+        .maybeSingle();
+      const names = extractSignupNames(user, profile);
+      setFirstName(names.firstName);
+      setLastName(names.lastName);
+      setOauthBootstrapLoading(false);
+    })();
+  }, [finishOAuth, router]);
 
   function handleCredentialsSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -76,16 +167,32 @@ export function SignupForm() {
       return;
     }
 
-    await signUp({
-      email: email.trim(),
-      password: password.trim(),
-      firstName: tFirst,
-      lastName: tLast,
-      username: tUser,
-    });
+    const supabase = createSupabaseClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) {
+      await completePendingSignup({
+        firstName: tFirst,
+        lastName: tLast,
+        username: tUser,
+      });
+    } else {
+      await signUp({
+        email: email.trim(),
+        password: password.trim(),
+        firstName: tFirst,
+        lastName: tLast,
+        username: tUser,
+      });
+    }
   }
 
   const displayedError = validationError || signUpError || "";
+
+  const oauthNamesComplete =
+    finishOAuth && !oauthBootstrapLoading && Boolean(firstName.trim()) && Boolean(lastName.trim());
 
   const inputClassName =
     "mt-1 block h-11 w-full min-w-0 rounded-lg border border-charcoal/70 bg-background px-5 text-base text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background";
@@ -107,13 +214,13 @@ export function SignupForm() {
           <form onSubmit={handleCredentialsSubmit} className={panelClassName} noValidate>
             <h1 className="mb-6 text-center text-xl font-semibold text-foreground sm:text-2xl md:text-3xl">Sign up</h1>
 
-            {displayedError && !finishAccount ? (
+            {(displayedError || googleOAuthError) && !finishAccount ? (
               <div
                 role="alert"
                 aria-live="assertive"
                 className="mb-6 w-full rounded-lg border border-red-300 bg-red-100 px-3 py-2 text-center text-sm text-red-700"
               >
-                {displayedError}
+                {displayedError || googleOAuthError}
               </div>
             ) : null}
 
@@ -165,10 +272,14 @@ export function SignupForm() {
 
               <button
                 type="button"
-                className="min-h-11 w-full rounded-lg bg-charcoal px-5 py-2.5 text-[1.0625rem] font-medium leading-snug text-white transition hover:opacity-85 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+                disabled={googleLoading}
+                onClick={() => {
+                  void signInWithGoogle();
+                }}
+                className="min-h-11 w-full rounded-lg bg-charcoal px-5 py-2.5 text-[1.0625rem] font-medium leading-snug text-white transition hover:opacity-85 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50"
                 aria-label="Sign up with Google"
               >
-                Google
+                {googleLoading ? "Continuing with Google…" : "Google"}
               </button>
 
               <p className="text-center text-base font-semibold text-foreground">
@@ -196,7 +307,7 @@ export function SignupForm() {
           <div className={cardClassName}>
           <form onSubmit={handleFinishAccountSubmit} className={`${panelClassName} pb-10`} noValidate>
             <h1 className="mb-6 text-center text-[1.25rem] font-semibold leading-tight text-foreground sm:text-[1.45rem] md:text-2xl">
-              Finish Creating Your Account
+              {oauthNamesComplete ? "Choose a username" : "Finish Creating Your Account"}
             </h1>
 
             {displayedError && finishAccount ? (
@@ -209,74 +320,102 @@ export function SignupForm() {
               </div>
             ) : null}
 
-            <div className="mb-6">
-              <label htmlFor="signup-username" className="block text-[15px] font-medium leading-snug text-foreground sm:text-base">
-                Username
-              </label>
-              <input
-                id="signup-username"
-                type="text"
-                autoComplete="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value.toLowerCase())}
-                className={inputClassName}
-                required
-                aria-required="true"
-                spellCheck={false}
-              />
-            </div>
+            {oauthBootstrapLoading && finishOAuth ? (
+              <p className="mb-6 text-center text-base text-muted-foreground" role="status">
+                Loading…
+              </p>
+            ) : (
+              <>
+                {oauthNamesComplete ? (
+                  <p className="mb-6 text-center text-sm text-muted-foreground">
+                    Signed in as {firstName} {lastName}. You can change this later in your profile.
+                  </p>
+                ) : null}
 
-            <div className="mb-6">
-              <label htmlFor="signup-first-name" className="block text-[15px] font-medium leading-snug text-foreground sm:text-base">
-                First Name
-              </label>
-              <input
-                id="signup-first-name"
-                type="text"
-                autoComplete="given-name"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                className={inputClassName}
-                required
-                aria-required="true"
-              />
-            </div>
+                <div className="mb-6">
+                  <label htmlFor="signup-username" className="block text-[15px] font-medium leading-snug text-foreground sm:text-base">
+                    Username
+                  </label>
+                  <input
+                    id="signup-username"
+                    type="text"
+                    autoComplete="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                    className={inputClassName}
+                    required
+                    aria-required="true"
+                    spellCheck={false}
+                    disabled={oauthBootstrapLoading}
+                  />
+                </div>
 
-            <div className="mb-6">
-              <label htmlFor="signup-last-name" className="block text-[15px] font-medium leading-snug text-foreground sm:text-base">
-                Last Name
-              </label>
-              <input
-                id="signup-last-name"
-                type="text"
-                autoComplete="family-name"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                className={inputClassName}
-                required
-                aria-required="true"
-              />
-            </div>
+                {!oauthNamesComplete ? (
+                  <>
+                    <div className="mb-6">
+                      <label htmlFor="signup-first-name" className="block text-[15px] font-medium leading-snug text-foreground sm:text-base">
+                        First Name
+                      </label>
+                      <input
+                        id="signup-first-name"
+                        type="text"
+                        autoComplete="given-name"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        className={inputClassName}
+                        required
+                        aria-required="true"
+                        disabled={oauthBootstrapLoading}
+                      />
+                    </div>
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="min-h-11 w-full rounded-lg bg-charcoal px-5 py-2.5 text-[1.0625rem] font-medium leading-snug text-white transition hover:opacity-85 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50"
-            >
-              {isLoading ? "Creating account..." : "Finish Creating Account"}
-            </button>
+                    <div className="mb-6">
+                      <label htmlFor="signup-last-name" className="block text-[15px] font-medium leading-snug text-foreground sm:text-base">
+                        Last Name
+                      </label>
+                      <input
+                        id="signup-last-name"
+                        type="text"
+                        autoComplete="family-name"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        className={inputClassName}
+                        required
+                        aria-required="true"
+                        disabled={oauthBootstrapLoading}
+                      />
+                    </div>
+                  </>
+                ) : null}
+
+                <button
+                  type="submit"
+                  disabled={isLoading || oauthBootstrapLoading}
+                  className="min-h-11 w-full rounded-lg bg-charcoal px-5 py-2.5 text-[1.0625rem] font-medium leading-snug text-white transition hover:opacity-85 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50"
+                >
+                  {isLoading ? "Creating account..." : "Finish Creating Account"}
+                </button>
+              </>
+            )}
 
             <p className="mt-6 text-center">
               <button
                 type="button"
                 className="text-base font-semibold text-primary underline underline-offset-2 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
                 onClick={() => {
-                  setValidationError("");
-                  clearError();
-                  setFinishAccount(false);
+                  void (async () => {
+                    setValidationError("");
+                    clearError();
+                    if (finishOAuth) {
+                      const supabase = createSupabaseClient();
+                      await supabase.auth.signOut();
+                      router.replace("/signup");
+                    }
+                    setFinishAccount(false);
+                  })();
                 }}
               >
-                Back
+                {finishOAuth ? "Cancel" : "Back"}
               </button>
             </p>
           </form>
