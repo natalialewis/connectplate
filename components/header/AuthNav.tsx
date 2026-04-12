@@ -52,13 +52,24 @@ export function AuthNav() {
   }, [dropdownOpen]);
 
   const user = authUser
-    ? {
-        firstName:
-          profile?.first_name ??
-          (authUser.user_metadata?.first_name as string) ??
-          "",
-        avatarUrl: profile?.avatar_url ?? undefined,
-      }
+    ? (() => {
+        const meta = authUser.user_metadata;
+        const firstName =
+          profile?.first_name ?? (typeof meta?.first_name === "string" ? meta.first_name : "") ?? "";
+        const lastName =
+          profile?.last_name ?? (typeof meta?.last_name === "string" ? meta.last_name : "") ?? "";
+        const displayName = [firstName, lastName].filter(Boolean).join(" ").trim();
+        const username =
+          profile?.username?.trim() ||
+          (typeof meta?.username === "string" ? meta.username.trim() : "") ||
+          "";
+        return {
+          firstName,
+          displayName,
+          username,
+          avatarUrl: profile?.avatar_url ?? undefined,
+        };
+      })()
     : null;
 
   if (loading) {
@@ -112,30 +123,44 @@ export function AuthNav() {
           <div
             ref={dropdownRef}
             id="user-menu"
-            role="menu"
             aria-labelledby="user-menu-trigger"
-            className="absolute right-0 top-full z-50 mt-2 w-[min(12rem,calc(100vw-2rem))] min-w-40 rounded-lg border border-border bg-card py-1 shadow-lg sm:w-48 sm:min-w-0"
+            className="absolute right-0 top-full z-50 mt-2 w-[min(12rem,calc(100vw-2rem))] min-w-40 overflow-hidden rounded-lg border border-border bg-card shadow-lg sm:w-48 sm:min-w-0"
           >
-            <Link
-              href="/settings"
-              role="menuitem"
-              className="block min-h-[2.75rem] px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted focus:bg-muted focus:outline-none sm:min-h-0 sm:py-2 md:text-base"
-              onClick={closeDropdown}
-            >
-              Settings
-            </Link>
-            <div className="my-1 border-t border-border" />
-            <button
-              type="button"
-              role="menuitem"
-              className="block w-full min-h-[2.75rem] px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted focus:bg-muted focus:outline-none sm:min-h-0 sm:py-2 md:text-base"
-              onClick={() => {
-                closeDropdown();
-                logout();
-              }}
-            >
-              Log out
-            </button>
+            <div id="user-menu-summary" className="select-none px-4 pb-3 pt-3.5">
+              {user.displayName ? (
+                <p className="truncate text-left text-sm font-semibold leading-snug text-foreground md:text-[15px]">
+                  {user.displayName}
+                </p>
+              ) : null}
+              {user.username ? (
+                <p className="mt-0.5 truncate text-left text-sm leading-snug text-muted-foreground md:text-[15px]">
+                  @{user.username}
+                </p>
+              ) : null}
+            </div>
+            <div className="border-t border-border" role="separator" aria-hidden="true" />
+            <div role="menu" aria-describedby="user-menu-summary" className="py-1">
+              <Link
+                href="/settings"
+                role="menuitem"
+                className="block min-h-[2.75rem] px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted focus:bg-muted focus:outline-none sm:min-h-0 sm:py-2 md:text-base"
+                onClick={closeDropdown}
+              >
+                Settings
+              </Link>
+              <div className="my-1 border-t border-border" role="separator" aria-hidden="true" />
+              <button
+                type="button"
+                role="menuitem"
+                className="block w-full min-h-[2.75rem] px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted focus:bg-muted focus:outline-none sm:min-h-0 sm:py-2 md:text-base"
+                onClick={() => {
+                  closeDropdown();
+                  logout();
+                }}
+              >
+                Log out
+              </button>
+            </div>
           </div>
         )}
       </div>
