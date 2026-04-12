@@ -10,8 +10,11 @@ jest.mock("next/navigation", () => ({
 jest.mock("./AuthNav", () => ({
   AuthNav: () => <div data-testid="auth-nav">AuthNav</div>,
 }));
-jest.mock("@/components/ui/ThemeToggle", () => ({
-  ThemeToggle: () => <button type="button" aria-label="Theme">Theme</button>,
+jest.mock("./HeaderSearch", () => ({
+  HeaderSearch: () => <div data-testid="header-search">Search</div>,
+}));
+jest.mock("./HeaderNavTabs", () => ({
+  HeaderNavTabs: () => <div data-testid="header-nav-tabs">Tabs</div>,
 }));
 jest.mock("next/link", () => ({
   __esModule: true,
@@ -40,17 +43,19 @@ describe("Header", () => {
     expect(homeLink).toHaveAttribute("href", "/");
   });
 
-  it("renders AuthNav and ThemeToggle", () => {
+  it("renders AuthNav, search, and nav tabs on main chrome", () => {
     render(<Header />);
     expect(screen.getByTestId("auth-nav")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /theme/i })).toBeInTheDocument();
+    expect(screen.getByTestId("header-search")).toBeInTheDocument();
+    expect(screen.getByTestId("header-nav-tabs")).toBeInTheDocument();
   });
 
-  it("renders centered auth header on login page", () => {
+  it("renders centered auth header on login page without chrome extras", () => {
     mockUsePathname.mockReturnValue("/login");
     render(<Header />);
     expect(screen.getByRole("link", { name: /connectplate/i })).toBeInTheDocument();
     expect(screen.queryByTestId("auth-nav")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /theme/i })).not.toBeInTheDocument();
+    expect(screen.queryByTestId("header-search")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("header-nav-tabs")).not.toBeInTheDocument();
   });
 });
