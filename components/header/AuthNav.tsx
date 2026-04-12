@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AddFriendDialog } from "@/components/friends/AddFriendDialog";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useLogout } from "@/lib/hooks/useLogout";
 import { useProfile } from "@/lib/hooks/useProfile";
@@ -11,6 +12,7 @@ export function AuthNav() {
   const { profile } = useProfile();
   const { logout } = useLogout();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [addFriendOpen, setAddFriendOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const openedByKeyboardRef = useRef(false);
@@ -140,6 +142,17 @@ export function AuthNav() {
             </div>
             <div className="border-t border-border" role="separator" aria-hidden="true" />
             <div role="menu" aria-describedby="user-menu-summary" className="py-1">
+              <button
+                type="button"
+                role="menuitem"
+                className="block w-full min-h-[2.75rem] px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted focus:bg-muted focus:outline-none sm:min-h-0 sm:py-2 md:text-base"
+                onClick={() => {
+                  closeDropdown();
+                  setAddFriendOpen(true);
+                }}
+              >
+                Add Friend
+              </button>
               <Link
                 href="/settings"
                 role="menuitem"
@@ -163,6 +176,7 @@ export function AuthNav() {
             </div>
           </div>
         )}
+        <AddFriendDialog open={addFriendOpen} onOpenChange={setAddFriendOpen} />
       </div>
     );
   }
