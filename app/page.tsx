@@ -17,10 +17,10 @@ export default async function HomePage() {
         <div className="mt-6 flex flex-col justify-center items-center gap-3 sm:mt-8 sm:flex-row sm:gap-4">
           {user ? (
             <Link
-              href="/profile"
+              href="/settings"
               className="w-1/4 rounded-lg bg-primary px-5 py-2.5 text-center text-sm font-medium text-primary-foreground hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background sm:w-auto"
             >
-              Profile
+              Settings
             </Link>
           ) : (
             <>

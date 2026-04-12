@@ -117,14 +117,6 @@ export function AuthNav() {
             className="absolute right-0 top-full z-50 mt-2 w-[min(12rem,calc(100vw-2rem))] min-w-40 rounded-lg border border-border bg-card py-1 shadow-lg sm:w-48 sm:min-w-0"
           >
             <Link
-              href="/profile"
-              role="menuitem"
-              className="block min-h-[2.75rem] px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted focus:bg-muted focus:outline-none sm:min-h-0 sm:py-2 md:text-base"
-              onClick={closeDropdown}
-            >
-              Profile
-            </Link>
-            <Link
               href="/settings"
               role="menuitem"
               className="block min-h-[2.75rem] px-4 py-2.5 text-left text-sm text-foreground hover:bg-muted focus:bg-muted focus:outline-none sm:min-h-0 sm:py-2 md:text-base"
