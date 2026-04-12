@@ -18,6 +18,7 @@ export type Profile = {
   avatar_url: string | null;
   updated_at: string;
   created_at: string;
+  signup_completed: boolean;
 };
 
 type ProfileContextValue = {
