@@ -1,5 +1,9 @@
 import Link from "next/link";
+import { HomeAddFriendAction } from "@/components/friends/HomeAddFriendAction";
 import { getUser } from "@/lib/auth";
+
+const homeAddFriendButtonClassName =
+  "w-1/4 rounded-lg border border-border bg-card px-5 py-2.5 text-center text-sm font-medium text-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background sm:w-auto sm:min-h-0 sm:py-2 md:text-base";
 
 export default async function HomePage() {
   const user = await getUser();
@@ -16,12 +20,15 @@ export default async function HomePage() {
         </p>
         <div className="mt-6 flex flex-col justify-center items-center gap-3 sm:mt-8 sm:flex-row sm:gap-4">
           {user ? (
-            <Link
-              href="/settings"
-              className="w-1/4 rounded-lg bg-primary px-5 py-2.5 text-center text-sm font-medium text-primary-foreground hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background sm:w-auto"
-            >
-              Settings
-            </Link>
+            <>
+              <HomeAddFriendAction buttonClassName={homeAddFriendButtonClassName} />
+              <Link
+                href="/settings"
+                className="w-1/4 rounded-lg bg-primary px-5 py-2.5 text-center text-sm font-medium text-primary-foreground hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background sm:w-auto"
+              >
+                Settings
+              </Link>
+            </>
           ) : (
             <>
               <Link
