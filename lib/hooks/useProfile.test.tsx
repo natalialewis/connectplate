@@ -12,6 +12,7 @@ const mockProfile = {
   first_name: "Test",
   last_name: "User",
   email: "test@example.com",
+  username: "test.user",
   avatar_url: null,
   updated_at: "2024-01-01T00:00:00Z",
   created_at: "2024-01-01T00:00:00Z",

@@ -15,6 +15,7 @@ export type Profile = {
   first_name: string;
   last_name: string;
   email: string;
+  username: string;
   avatar_url: string | null;
   updated_at: string;
   created_at: string;
