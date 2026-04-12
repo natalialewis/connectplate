@@ -3,12 +3,20 @@
 import Link from "next/link";
 import { type SubmitEvent, useState } from "react";
 import { PasswordInput } from "@/components/ui/PasswordInput";
+import { useGoogleOAuth } from "@/lib/hooks/useGoogleOAuth";
 import { useLogin } from "@/lib/hooks/useLogin";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { login, isLoading, error } = useLogin();
+  const {
+    signInWithGoogle,
+    isLoading: googleLoading,
+    error: googleError,
+  } = useGoogleOAuth();
+
+  const oauthError = googleError;
 
   async function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -17,13 +25,13 @@ export function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className="mx-auto mt-4 w-full max-w-[400px] sm:mt-5" noValidate>
-      {error ? (
+      {error || oauthError ? (
         <div
           role="alert"
           aria-live="assertive"
           className="mb-6 w-full rounded-lg border border-red-300 bg-red-100 px-3 py-2 text-center text-sm text-red-700"
         >
-          {error}
+          {error ?? oauthError}
         </div>
       ) : null}
 
@@ -77,10 +85,14 @@ export function LoginForm() {
 
         <button
           type="button"
-          className="min-h-11 w-full rounded-lg bg-charcoal px-5 py-2.5 text-[1.0625rem] font-medium leading-snug text-white transition hover:opacity-85 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+          disabled={googleLoading}
+          onClick={() => {
+            void signInWithGoogle();
+          }}
+          className="min-h-11 w-full rounded-lg bg-charcoal px-5 py-2.5 text-[1.0625rem] font-medium leading-snug text-white transition hover:opacity-85 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50"
           aria-label="Log in with Google"
         >
-          Google
+          {googleLoading ? "Continuing with Google…" : "Google"}
         </button>
 
         <p className="text-center text-base font-semibold text-foreground">
