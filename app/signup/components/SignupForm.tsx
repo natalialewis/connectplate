@@ -328,7 +328,7 @@ export function SignupForm() {
               <>
                 {oauthNamesComplete ? (
                   <p className="mb-6 text-center text-sm text-muted-foreground">
-                    Signed in as {firstName} {lastName}. You can change this later in your profile.
+                    Signed in as {firstName} {lastName}. You can change this later in settings.
                   </p>
                 ) : null}
 
