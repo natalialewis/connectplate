@@ -7,17 +7,36 @@ jest.mock("next/navigation", () => ({
 }));
 
 const mockSignUp = jest.fn();
+const mockGetUser = jest.fn();
+const mockUpdateUser = jest.fn();
+const mockProfileUpdate = jest.fn();
+const mockProfileSelectMaybeSingle = jest.fn();
+
 jest.mock("@/lib/supabase/client", () => ({
   createSupabaseClient: () => ({
     auth: {
       signUp: mockSignUp,
+      getUser: mockGetUser,
+      updateUser: mockUpdateUser,
     },
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: mockProfileSelectMaybeSingle,
+        }),
+      }),
+      update: (payload: unknown) => ({
+        eq: () => mockProfileUpdate(payload),
+      }),
+    }),
   }),
 }));
 
 describe("useSignUp", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGetUser.mockResolvedValue({ data: { user: null }, error: null });
+    mockProfileSelectMaybeSingle.mockResolvedValue({ data: { avatar_url: null }, error: null });
   });
 
   it("returns signUp function, isLoading, error, and clearError", () => {
@@ -93,5 +112,107 @@ describe("useSignUp", () => {
 
     expect(mockPush).not.toHaveBeenCalled();
     expect(result.current.error).toBe("Username already in use.");
+  });
+
+  it("completePendingSignup updates profile and metadata when session exists", async () => {
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: "oauth-user-1" } },
+      error: null,
+    });
+    mockUpdateUser.mockResolvedValue({ error: null });
+    mockProfileUpdate.mockResolvedValue({ error: null });
+
+    const { result } = renderHook(() => useSignUp());
+
+    await act(async () => {
+      await result.current.completePendingSignup({
+        firstName: "Pat",
+        lastName: "Lee",
+        username: "pat.codes",
+      });
+    });
+
+    expect(mockUpdateUser).toHaveBeenCalledWith({
+      data: {
+        first_name: "Pat",
+        last_name: "Lee",
+        username: "pat.codes",
+      },
+    });
+    expect(mockProfileUpdate).toHaveBeenCalledWith({
+      first_name: "Pat",
+      last_name: "Lee",
+      username: "pat.codes",
+      signup_completed: true,
+    });
+    expect(mockPush).toHaveBeenCalledWith("/");
+  });
+
+  it("completePendingSignup sets avatar_url from OAuth metadata when profile has none", async () => {
+    mockGetUser.mockResolvedValue({
+      data: {
+        user: {
+          id: "oauth-user-2",
+          user_metadata: { picture: "https://lh3.googleusercontent.com/a/example" },
+        },
+      },
+      error: null,
+    });
+    mockUpdateUser.mockResolvedValue({ error: null });
+    mockProfileSelectMaybeSingle.mockResolvedValue({ data: { avatar_url: null }, error: null });
+    mockProfileUpdate.mockResolvedValue({ error: null });
+
+    const { result } = renderHook(() => useSignUp());
+
+    await act(async () => {
+      await result.current.completePendingSignup({
+        firstName: "Sam",
+        lastName: "OAuth",
+        username: "sam.oauth",
+      });
+    });
+
+    expect(mockProfileUpdate).toHaveBeenCalledWith({
+      first_name: "Sam",
+      last_name: "OAuth",
+      username: "sam.oauth",
+      signup_completed: true,
+      avatar_url: "https://lh3.googleusercontent.com/a/example",
+    });
+  });
+
+  it("completePendingSignup does not overwrite existing avatar_url", async () => {
+    mockGetUser.mockResolvedValue({
+      data: {
+        user: {
+          id: "oauth-user-3",
+          user_metadata: { picture: "https://lh3.googleusercontent.com/a/google" },
+        },
+      },
+      error: null,
+    });
+    mockUpdateUser.mockResolvedValue({ error: null });
+    mockProfileSelectMaybeSingle.mockResolvedValue({
+      data: { avatar_url: "https://example.com/storage/avatar.jpg" },
+      error: null,
+    });
+    mockProfileUpdate.mockResolvedValue({ error: null });
+
+    const { result } = renderHook(() => useSignUp());
+
+    await act(async () => {
+      await result.current.completePendingSignup({
+        firstName: "Alex",
+        lastName: "User",
+        username: "alex.u",
+      });
+    });
+
+    expect(mockProfileUpdate).toHaveBeenCalledWith({
+      first_name: "Alex",
+      last_name: "User",
+      username: "alex.u",
+      signup_completed: true,
+    });
   });
 });
