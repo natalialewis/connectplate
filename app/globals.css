@@ -141,3 +141,17 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Add-friend modal: one-shot spin on + before it becomes a checkmark */
+@keyframes connectplate-follow-plus-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.connectplate-follow-plus-spin {
+  animation: connectplate-follow-plus-spin 0.52s cubic-bezier(0.45, 0.12, 0.2, 0.98) forwards;
+}
