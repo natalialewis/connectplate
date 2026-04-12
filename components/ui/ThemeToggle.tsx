@@ -1,30 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
-type Theme = "light" | "dark";
+import { useClientTheme } from "@/lib/hooks/useClientTheme";
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme | null>(null);
+  const { theme, toggleTheme } = useClientTheme();
 
-  // Initialize theme from localStorage or system preference
-  useEffect(() => {
-    const stored = localStorage.getItem("theme") as Theme | null;
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const resolved: Theme = stored ?? (prefersDark ? "dark" : "light");
-    setTheme(resolved);
-  }, []);
-
-  // Toggle theme and update localStorage
-  const toggle = () => {
-    const next: Theme = theme === "dark" ? "light" : "dark";
-    localStorage.setItem("theme", next);
-    document.documentElement.classList.remove("light", "dark");
-    document.documentElement.classList.add(next);
-    setTheme(next);
-  };
-
-  // Show loading indicator until theme is resolved if it's not already set
   if (theme === null) {
     return (
       <span className="inline-block h-9 w-9 rounded-lg bg-muted" aria-hidden />
@@ -34,7 +14,7 @@ export function ThemeToggle() {
   return (
     <button
       type="button"
-      onClick={toggle}
+      onClick={toggleTheme}
       className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border border-charcoal-muted bg-card transition-colors transition-transform duration-150 ease-out hover:bg-muted active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${theme === "dark" ? "text-foreground" : "text-charcoal"}`}
       aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
       title={theme === "dark" ? "Light mode" : "Dark mode"}
