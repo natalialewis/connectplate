@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AuthNav } from "./AuthNav";
 import { HeaderNavTabs } from "./HeaderNavTabs";
-import { HeaderSearch } from "./HeaderSearch";
 
 export function Header() {
   const pathname = usePathname();
@@ -36,7 +35,7 @@ export function Header() {
           </Link>
         ) : (
           <>
-            <div className="order-1 flex shrink-0 items-center justify-start lg:order-1">
+            <div className="flex shrink-0 items-center justify-start">
               <Link
                 href="/"
                 className="flex shrink-0 items-center gap-1 rounded font-semibold text-foreground hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
@@ -53,11 +52,7 @@ export function Header() {
               </Link>
             </div>
 
-            <div className="order-3 flex w-full min-w-0 justify-center px-1 sm:px-2 lg:order-2 lg:max-w-none lg:flex-1 lg:justify-center">
-              <HeaderSearch />
-            </div>
-
-            <div className="order-2 flex min-w-0 flex-1 items-center justify-end gap-4 sm:gap-5 md:gap-6 lg:order-3 lg:flex-none lg:shrink-0">
+            <div className="flex min-w-0 flex-1 items-center justify-end gap-4 sm:gap-5 md:gap-6">
               <HeaderNavTabs />
               <AuthNav />
             </div>
