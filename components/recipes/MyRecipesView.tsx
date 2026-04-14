@@ -104,7 +104,7 @@ export function MyRecipesView({ heading, publicRecipes, privateRecipes }: Props)
             <div className="space-y-3">
               {publicRecipes.length === 0 ? (
                 <p className="py-8 text-center text-sm text-muted-foreground sm:text-base">
-                  Add a publicrecipe to see it here!
+                  Add a public recipe to see it here!
                 </p>
               ) : (
                 publicRecipes.map((r) => <RecipeRow key={r.id} recipe={r} />)
