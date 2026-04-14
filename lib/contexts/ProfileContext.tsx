@@ -17,6 +17,7 @@ export type Profile = {
   email: string;
   username: string;
   avatar_url: string | null;
+  bio: string | null;
   updated_at: string;
   created_at: string;
   signup_completed: boolean;
