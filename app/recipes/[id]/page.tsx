@@ -1,8 +1,8 @@
 import { IngredientNutritionToggle } from "@/components/recipes/IngredientNutritionToggle";
+import { BackButton } from "@/components/navigation/BackButton";
 import { RecipeNutritionSummary } from "@/components/recipes/RecipeNutritionSummary";
 import type { IngredientNutritionJson } from "@/lib/recipes/nutrition";
 import { createSupabaseClient } from "@/lib/supabase/server";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 const UUID_RE =
@@ -62,12 +62,7 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
     <div className="min-h-full bg-background px-4 py-8 sm:py-10 md:py-12">
       <main className="mx-auto max-w-2xl space-y-8">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <Link
-            href="/recipes"
-            className="text-sm font-medium text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            ← Recipes
-          </Link>
+          <BackButton fallbackHref="/recipes" label="Back" ariaLabel="Back" />
         </div>
 
         <header className="space-y-2">
