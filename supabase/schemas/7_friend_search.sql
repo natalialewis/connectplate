@@ -108,3 +108,58 @@ $$;
 
 REVOKE ALL ON FUNCTION public.search_profiles_for_friend(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.search_profiles_for_friend(text) TO authenticated;
+
+-- Profile card lookup by username (for /profile/[username]); keeps owner-only profile RLS intact.
+CREATE OR REPLACE FUNCTION public.get_profile_card_by_username(p_username text)
+RETURNS TABLE (
+    id uuid,
+    username text,
+    first_name text,
+    last_name text,
+    avatar_url text,
+    bio text,
+    is_self boolean,
+    already_following boolean
+)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    uid uuid;
+    clean_username text;
+BEGIN
+    uid := (SELECT auth.uid());
+    IF uid IS NULL THEN
+        RETURN;
+    END IF;
+
+    clean_username := regexp_replace(lower(trim(p_username)), '[^a-z0-9._]', '', 'g');
+    IF length(clean_username) < 3 THEN
+        RETURN;
+    END IF;
+
+    RETURN QUERY
+    SELECT
+        p.id,
+        p.username,
+        p.first_name,
+        p.last_name,
+        p.avatar_url,
+        p.bio,
+        (p.id = uid) AS is_self,
+        EXISTS (
+            SELECT 1
+            FROM follows f
+            WHERE f.follower_id = uid
+              AND f.following_id = p.id
+        ) AS already_following
+    FROM profiles p
+    WHERE p.username = clean_username
+    LIMIT 1;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.get_profile_card_by_username(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_profile_card_by_username(text) TO authenticated;
