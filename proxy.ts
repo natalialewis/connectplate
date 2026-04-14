@@ -23,6 +23,8 @@ export async function proxy(request: NextRequest) {
     // Get the user's session
     const { data: { user } } = await supabase.auth.getUser();
     const pathname = request.nextUrl.pathname;
+    const isPublicRecipeDetailRoute =
+        /^\/recipes\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(pathname);
 
     // Public routes: marketing/auth entry, and OAuth PKCE callback (see Supabase Google/OAuth docs).
     const isPublicRoute =
@@ -30,7 +32,8 @@ export async function proxy(request: NextRequest) {
         pathname === "/login" ||
         pathname === "/signup" ||
         pathname === "/auth/callback" ||
-        pathname === "/auth/auth-code-error";
+        pathname === "/auth/auth-code-error" ||
+        isPublicRecipeDetailRoute;
 
     // If the user is not on a public route and not authenticated, redirect to '/login'
     if (!isPublicRoute && !user) {
