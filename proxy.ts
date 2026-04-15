@@ -2,6 +2,12 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function proxy(request: NextRequest) {
+    const pathname = request.nextUrl.pathname;
+    // Inngest Dev Server and Cloud call this route without a session; do not redirect to /login.
+    if (pathname === "/api/inngest" || pathname.startsWith("/api/inngest/")) {
+        return NextResponse.next({ request });
+    }
+
     const supabaseResponse = NextResponse.next({ request });
     const supabaseURL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -22,7 +28,6 @@ export async function proxy(request: NextRequest) {
 
     // Get the user's session
     const { data: { user } } = await supabase.auth.getUser();
-    const pathname = request.nextUrl.pathname;
     const isPublicRecipeDetailRoute =
         /^\/recipes\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(pathname);
 
