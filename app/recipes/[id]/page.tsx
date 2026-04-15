@@ -1,5 +1,6 @@
 import { IngredientNutritionToggle } from "@/components/recipes/IngredientNutritionToggle";
 import { BackButton } from "@/components/navigation/BackButton";
+import { RecipePdfDownloadButton } from "@/components/recipes/RecipePdfDownloadButton";
 import { RecipeNutritionSummary } from "@/components/recipes/RecipeNutritionSummary";
 import type { IngredientNutritionJson } from "@/lib/recipes/nutrition";
 import { createSupabaseClient } from "@/lib/supabase/server";
@@ -35,6 +36,10 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
   }
 
   const supabase = await createSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const { data: recipe, error } = await supabase.from("recipes").select("*").eq("id", id).maybeSingle();
 
   if (error || !recipe) {
@@ -63,6 +68,7 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
       <main className="mx-auto max-w-2xl space-y-8">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <BackButton fallbackHref="/recipes" label="Back" ariaLabel="Back" />
+          {user ? <RecipePdfDownloadButton recipeId={id} /> : null}
         </div>
 
         <header className="space-y-2">
