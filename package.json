@@ -9,13 +9,16 @@
     "start": "next start",
     "lint": "eslint",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "inngest:dev": "npx inngest-cli@latest dev"
   },
   "dependencies": {
+    "@react-pdf/renderer": "^4.4.1",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.95.3",
+    "inngest": "^4.2.2",
     "next": "16.1.6",
-    "react": "19.2.3",
+    "react": "^19.2.3",
     "react-dom": "19.2.3"
   },
   "devDependencies": {
