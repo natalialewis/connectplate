@@ -1,5 +1,6 @@
 import { IngredientNutritionToggle } from "@/components/recipes/IngredientNutritionToggle";
 import { BackButton } from "@/components/navigation/BackButton";
+import { RecipeAiModifyButton } from "@/components/recipes/RecipeAiModifyButton";
 import { RecipePdfDownloadButton } from "@/components/recipes/RecipePdfDownloadButton";
 import { RecipeNutritionSummary } from "@/components/recipes/RecipeNutritionSummary";
 import type { IngredientNutritionJson } from "@/lib/recipes/nutrition";
@@ -68,7 +69,12 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
       <main className="mx-auto max-w-2xl space-y-8">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <BackButton fallbackHref="/recipes" label="Back" ariaLabel="Back" />
-          {user ? <RecipePdfDownloadButton recipeId={id} /> : null}
+          {user ? (
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <RecipeAiModifyButton recipeId={id} />
+              <RecipePdfDownloadButton recipeId={id} />
+            </div>
+          ) : null}
         </div>
 
         <header className="space-y-2">
